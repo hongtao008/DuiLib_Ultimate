@@ -2,7 +2,6 @@
 #define __UIMANAGER_H__
 
 #pragma once
-#define WM_USER_SET_DPI WM_USER + 200
 namespace DuiLib {
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -55,13 +54,18 @@ namespace DuiLib {
 		UIEVENT__LAST,
 	};
 
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//
+	// 内部保留的消息
 	typedef enum MSGTYPE_UI
 	{
-		// 内部保留消息
-		UIMSG_TRAYICON = WM_USER + 1,
-		// 程序自定义消息
-		UIMSG_USER = WM_USER + 100,
+		UIMSG_TRAYICON = WM_USER + 1,// 托盘消息
+		UIMSG_SET_DPI,				 // DPI
+		WM_MENUCLICK,				 // 菜单消息
+		UIMSG_USER = WM_USER + 100,	 // 程序自定义消息
 	};
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
@@ -115,6 +119,7 @@ namespace DuiLib {
 		bool bUseHSL;
 		CDuiString sResType;
 		DWORD dwMask;
+
 	} TImageInfo;
 
 	typedef struct UILIB_API tagTDrawInfo
@@ -136,6 +141,10 @@ namespace DuiLib {
 		bool bTiledX;
 		bool bTiledY;
 		bool bHSL;
+
+		CDuiSize szImage;
+		RECT rcPadding;
+		CDuiString sAlign;
 	} TDrawInfo;
 
 	typedef struct UILIB_API tagTPercentInfo
@@ -354,7 +363,7 @@ namespace DuiLib {
 		const TImageInfo* GetImageString(LPCTSTR pStrImage, LPCTSTR pStrModify = NULL);
 
 		// 初始化拖拽
-		bool InitDragDrop();
+		bool EnableDragDrop(bool bEnable);
 		virtual bool OnDrop(FORMATETC* pFmtEtc, STGMEDIUM& medium,DWORD *pdwEffect);
 
 		bool AttachDialog(CControlUI* pControl);
@@ -537,6 +546,7 @@ namespace DuiLib {
 		Gdiplus::GdiplusStartupInput *m_pGdiplusStartupInput;
 
 		// 拖拽
+		bool m_bDragDrop;
 		bool m_bDragMode;
 		HBITMAP m_hDragBitmap;
 		

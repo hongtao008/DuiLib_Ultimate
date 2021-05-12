@@ -377,7 +377,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetClass() const
 	{
-		return _T("ListContainerHeaderItem");
+		return _T("ListContainerHeaderItemUI");
 	}
 
 	LPVOID CListContainerHeaderItemUI::GetInterface(LPCTSTR pstrName)
@@ -1009,6 +1009,7 @@ Label_ForeImage:
 	}
 	int CListContainerHeaderItemUI::GetCheckBoxWidth() const
 	{
+		if(m_pManager) m_pManager->GetDPIObj()->Scale(m_cxyCheckBox.cx);
 		return m_cxyCheckBox.cx;
 	}
 
@@ -1020,6 +1021,7 @@ Label_ForeImage:
 
 	int CListContainerHeaderItemUI::GetCheckBoxHeight()  const 
 	{
+		if(m_pManager) m_pManager->GetDPIObj()->Scale(m_cxyCheckBox.cy);
 		return m_cxyCheckBox.cy;
 	}
 
