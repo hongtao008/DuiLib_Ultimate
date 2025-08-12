@@ -129,21 +129,21 @@ namespace DuiLib {
 						rcDest.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
 						rcDest.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
 						rcDest.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);  
-						if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcDest);
+						//if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcDest);
 					}
 					else if( sItem == _T("source") ) {
 						rcSource.left = _tcstol(sValue.GetData(), &pstr, 10);  ASSERT(pstr);    
 						rcSource.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
 						rcSource.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
 						rcSource.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
-						if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcSource);
+						//if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcSource);
 					}
 					else if( sItem == _T("corner") ) {
 						rcCorner.left = _tcstol(sValue.GetData(), &pstr, 10);  ASSERT(pstr);    
 						rcCorner.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
 						rcCorner.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
 						rcCorner.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
-						if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcCorner);
+						//if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcCorner);
 					}
 					else if( sItem == _T("mask") ) {
 						if( sValue[0] == _T('#')) dwMask = _tcstoul(sValue.GetData() + 1, &pstr, 16);
@@ -183,7 +183,7 @@ namespace DuiLib {
 						rcPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
 						rcPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
 						rcPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);  
-						if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcPadding);
+						//if(pManager != NULL) pManager->GetDPIObj()->Scale(&rcPadding);
 					}
 				}
 				if( *pStrImage++ != _T(' ') ) break;
@@ -260,6 +260,7 @@ namespace DuiLib {
 		m_pFocus(NULL),
 		m_pEventHover(NULL),
 		m_pEventClick(NULL),
+		m_pEventRClick(NULL),
 		m_pEventKey(NULL),
 		m_bFirstLayout(true),
 		m_bFocusNeeded(false),
@@ -1025,6 +1026,12 @@ namespace DuiLib {
 					event.pSender = m_pEventClick;
 					m_pEventClick->Event(event);
 				}
+                if (m_pEventRClick != NULL)
+                {
+                    event.Type = UIEVENT_RBUTTONUP;
+                    event.pSender = m_pEventClick;
+                    m_pEventRClick->Event(event);
+                }
 
 				SetFocus(NULL);
 
@@ -1698,7 +1705,7 @@ namespace DuiLib {
 				event.wKeyState = (WORD)wParam;
 				event.dwTimestamp = ::GetTickCount();
 				pControl->Event(event);
-				m_pEventClick = pControl;
+				m_pEventRClick = pControl;
 			}
 			break;
 		case WM_RBUTTONUP:
@@ -1707,18 +1714,18 @@ namespace DuiLib {
 
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				m_ptLastMousePos = pt;
-				m_pEventClick = FindControl(pt);
-				if(m_pEventClick == NULL) break;
+				m_pEventRClick = FindControl(pt);
+				if(m_pEventRClick == NULL) break;
 
 				TEventUI event = { 0 };
 				event.Type = UIEVENT_RBUTTONUP;
-				event.pSender = m_pEventClick;
+				event.pSender = m_pEventRClick;
 				event.wParam = wParam;
 				event.lParam = lParam;
 				event.ptMouse = pt;
 				event.wKeyState = (WORD)wParam;
 				event.dwTimestamp = ::GetTickCount();
-				m_pEventClick->Event(event);
+				m_pEventRClick->Event(event);
 			}
 			break;
 		case WM_MBUTTONDOWN:
@@ -1768,19 +1775,19 @@ namespace DuiLib {
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				::ScreenToClient(m_hWndPaint, &pt);
 				m_ptLastMousePos = pt;
-				if( m_pEventClick == NULL ) break;
+				if( m_pEventRClick == NULL ) break;
 				ReleaseCapture();
 				TEventUI event = { 0 };
 				event.Type = UIEVENT_CONTEXTMENU;
-				event.pSender = m_pEventClick;
+				event.pSender = m_pEventRClick;
 				event.wParam = wParam;
 				event.lParam = lParam;
 				event.ptMouse = pt;
 				event.wKeyState = (WORD)wParam;
-				event.lParam = (LPARAM)m_pEventClick;
+				event.lParam = (LPARAM)m_pEventRClick;
 				event.dwTimestamp = ::GetTickCount();
-				m_pEventClick->Event(event);
-				m_pEventClick = NULL;
+				m_pEventRClick->Event(event);
+				m_pEventRClick = NULL;
 			}
 			break;
 		case WM_MOUSEWHEEL:
@@ -1959,6 +1966,11 @@ namespace DuiLib {
 		::InvalidateRect(m_hWndPaint, &rcItem, FALSE);
 	}
 
+	bool CPaintManagerUI::IsValid()
+	{
+		return m_hWndPaint != NULL && m_pRoot != NULL;
+	}
+
 	bool CPaintManagerUI::AttachDialog(CControlUI* pControl)
 	{
 		ASSERT(::IsWindow(m_hWndPaint));
@@ -1969,7 +1981,8 @@ namespace DuiLib {
 		SetFocus(NULL);
 		m_pEventKey = NULL;
 		m_pEventHover = NULL;
-		m_pEventClick = NULL;
+        m_pEventClick = NULL;
+        m_pEventRClick = NULL;
 		// Remove the existing control-tree. We might have gotten inside this function as
 		// a result of an event fired or similar, so we cannot just delete the objects and
 		// pull the internal memory of the calling code. We'll delay the cleanup.
@@ -2000,7 +2013,8 @@ namespace DuiLib {
 	{
 		if( pControl == m_pEventKey ) m_pEventKey = NULL;
 		if( pControl == m_pEventHover ) m_pEventHover = NULL;
-		if( pControl == m_pEventClick ) m_pEventClick = NULL;
+        if (pControl == m_pEventClick) m_pEventClick = NULL;
+        if (pControl == m_pEventRClick) m_pEventRClick = NULL;
 		if( pControl == m_pFocus ) m_pFocus = NULL;
 		KillTimer(pControl);
 		const CDuiString& sName = pControl->GetName();
@@ -2632,6 +2646,7 @@ namespace DuiLib {
 		}
 		else {
 			TNotifyUI *pMsg = new TNotifyUI;
+			pMsg->sVirtualWnd = Msg.sVirtualWnd;
 			pMsg->pSender = Msg.pSender;
 			pMsg->sType = Msg.sType;
 			pMsg->wParam = Msg.wParam;
@@ -2773,7 +2788,7 @@ namespace DuiLib {
 		}
 	}
 
-	void CPaintManagerUI::SetDefaultFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bShared)
+	void CPaintManagerUI::SetDefaultFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared)
 	{
 		LOGFONT lf = { 0 };
 		::GetObject(::GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &lf);
@@ -2787,6 +2802,7 @@ namespace DuiLib {
 		if( bBold ) lf.lfWeight += FW_BOLD;
 		if( bUnderline ) lf.lfUnderline = TRUE;
 		if( bItalic ) lf.lfItalic = TRUE;
+		if( bStrikeout ) lf.lfStrikeOut = TRUE;
 
 		HFONT hFont = ::CreateFontIndirect(&lf);
 		if( hFont == NULL ) return;
@@ -2800,6 +2816,7 @@ namespace DuiLib {
 			m_SharedResInfo.m_DefaultFontInfo.bBold = bBold;
 			m_SharedResInfo.m_DefaultFontInfo.bUnderline = bUnderline;
 			m_SharedResInfo.m_DefaultFontInfo.bItalic = bItalic;
+			m_SharedResInfo.m_DefaultFontInfo.bStrikeout = bStrikeout;
 			::ZeroMemory(&m_SharedResInfo.m_DefaultFontInfo.tm, sizeof(m_SharedResInfo.m_DefaultFontInfo.tm));
 			if( m_hDcPaint ) {
 				HFONT hOldFont = (HFONT) ::SelectObject(m_hDcPaint, hFont);
@@ -2816,6 +2833,7 @@ namespace DuiLib {
 			m_ResInfo.m_DefaultFontInfo.bBold = bBold;
 			m_ResInfo.m_DefaultFontInfo.bUnderline = bUnderline;
 			m_ResInfo.m_DefaultFontInfo.bItalic = bItalic;
+			m_ResInfo.m_DefaultFontInfo.bStrikeout = bStrikeout;
 			::ZeroMemory(&m_ResInfo.m_DefaultFontInfo.tm, sizeof(m_ResInfo.m_DefaultFontInfo.tm));
 			if( m_hDcPaint ) {
 				HFONT hOldFont = (HFONT) ::SelectObject(m_hDcPaint, hFont);
@@ -2833,7 +2851,7 @@ namespace DuiLib {
 			return m_ResInfo.m_CustomFonts.GetSize();
 	}
 
-	HFONT CPaintManagerUI::AddFont(int id, LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bShared)
+	HFONT CPaintManagerUI::AddFont(int id, LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared)
 	{
 		LOGFONT lf = { 0 };
 		::GetObject(::GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &lf);
@@ -2847,6 +2865,7 @@ namespace DuiLib {
 		if( bBold ) lf.lfWeight = FW_BOLD;
 		if( bUnderline ) lf.lfUnderline = TRUE;
 		if( bItalic ) lf.lfItalic = TRUE;
+		if( bStrikeout ) lf.lfStrikeOut = TRUE;
 		HFONT hFont = ::CreateFontIndirect(&lf);
 		if( hFont == NULL ) return NULL;
 
@@ -2859,6 +2878,7 @@ namespace DuiLib {
 		pFontInfo->bBold = bBold;
 		pFontInfo->bUnderline = bUnderline;
 		pFontInfo->bItalic = bItalic;
+		pFontInfo->bStrikeout = bStrikeout;
 		if( m_hDcPaint ) {
 			HFONT hOldFont = (HFONT) ::SelectObject(m_hDcPaint, hFont);
 			::GetTextMetrics(m_hDcPaint, &pFontInfo->tm);
@@ -3002,14 +3022,15 @@ namespace DuiLib {
 		return pFontInfo->hFont;
 	}
 
-	HFONT CPaintManagerUI::GetFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic)
+	HFONT CPaintManagerUI::GetFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout)
 	{
 		TFontInfo* pFontInfo = NULL;
 		for( int i = 0; i< m_ResInfo.m_CustomFonts.GetSize(); i++ ) {
 			if(LPCTSTR key = m_ResInfo.m_CustomFonts.GetAt(i)) {
 				pFontInfo = static_cast<TFontInfo*>(m_ResInfo.m_CustomFonts.Find(key));
 				if (pFontInfo && pFontInfo->sFontName == pStrFontName && pFontInfo->iSize == nSize && 
-					pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic) 
+					pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic
+					&& pFontInfo->bStrikeout == bStrikeout)
 					return pFontInfo->hFont;
 			}
 		}
@@ -3017,7 +3038,8 @@ namespace DuiLib {
 			if(LPCTSTR key = m_SharedResInfo.m_CustomFonts.GetAt(i)) {
 				pFontInfo = static_cast<TFontInfo*>(m_SharedResInfo.m_CustomFonts.Find(key));
 				if (pFontInfo && pFontInfo->sFontName == pStrFontName && pFontInfo->iSize == nSize && 
-					pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic) 
+					pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic
+					&& pFontInfo->bStrikeout == bStrikeout)
 					return pFontInfo->hFont;
 			}
 		}
@@ -3050,7 +3072,7 @@ namespace DuiLib {
 		return -1;
 	}
 
-	int CPaintManagerUI::GetFontIndex(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bShared)
+	int CPaintManagerUI::GetFontIndex(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared)
 	{
 		TFontInfo* pFontInfo = NULL;
 		if (bShared)
@@ -3059,7 +3081,8 @@ namespace DuiLib {
 				if(LPCTSTR key = m_SharedResInfo.m_CustomFonts.GetAt(i)) {
 					pFontInfo = static_cast<TFontInfo*>(m_SharedResInfo.m_CustomFonts.Find(key));
 					if (pFontInfo && pFontInfo->sFontName == pStrFontName && pFontInfo->iSize == nSize && 
-						pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic) 
+						pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic
+						&& pFontInfo->bStrikeout == bStrikeout)
 						return _ttoi(key);
 				}
 			}
@@ -3070,7 +3093,8 @@ namespace DuiLib {
 				if(LPCTSTR key = m_ResInfo.m_CustomFonts.GetAt(i)) {
 					pFontInfo = static_cast<TFontInfo*>(m_ResInfo.m_CustomFonts.Find(key));
 					if (pFontInfo && pFontInfo->sFontName == pStrFontName && pFontInfo->iSize == nSize && 
-						pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic) 
+						pFontInfo->bBold == bBold && pFontInfo->bUnderline == bUnderline && pFontInfo->bItalic == bItalic
+						&& pFontInfo->bStrikeout == bStrikeout)
 						return _ttoi(key);
 				}
 			}

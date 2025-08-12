@@ -2073,6 +2073,11 @@ err:
 		{
 			return;
 		}
+
+		if( event.Type == UIEVENT_MOUSEENTER ) 
+		{
+			return;
+		}
 		if( event.Type == UIEVENT_BUTTONUP ) 
 		{
 			return;
@@ -2473,15 +2478,19 @@ err:
 	{
 		if( _tcscmp(pstrName, _T("vscrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_VSCROLL;
+			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_VERT, ESB_ENABLE_BOTH);
 		}
 		if( _tcscmp(pstrName, _T("autovscroll")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_AUTOVSCROLL;
+			if(m_pTwh) m_pTwh->TxShowScrollBar(SB_VERT, true);
 		}
 		else if( _tcscmp(pstrName, _T("hscrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_HSCROLL;
+			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
 		}
 		if( _tcscmp(pstrName, _T("autohscroll")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_AUTOHSCROLL;
+			if(m_pTwh) m_pTwh->TxShowScrollBar(SB_HORZ, true);
 		}
 		else if( _tcsicmp(pstrName, _T("multiline")) == 0 ) {
 			SetMultiLine(_tcscmp(pstrValue, _T("true")) == 0);
@@ -2502,7 +2511,10 @@ err:
 			SetRich(_tcscmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcscmp(pstrName, _T("readonly")) == 0 ) {
-			if( _tcscmp(pstrValue, _T("true")) == 0 ) { m_lTwhStyle |= ES_READONLY; m_bReadOnly = true; }
+			if( _tcscmp(pstrValue, _T("true")) == 0 ) { 
+				m_lTwhStyle |= ES_READONLY; 
+				m_bReadOnly = true; 
+			}
 		}
 		else if( _tcscmp(pstrName, _T("password")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_PASSWORD;
@@ -2600,6 +2612,9 @@ err:
 							bWasHandled = false;
 							return 0;
 						}
+						else {
+							break;
+						}
 					}
 					break;
 				}
@@ -2609,16 +2624,18 @@ err:
 			if( dwHitResult == HITRESULT_OUTSIDE ) {
 				RECT rc;
 				m_pTwh->GetControlRect(&rc);
+
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				if( uMsg == WM_SETCURSOR ) {
 					::GetCursorPos(&pt);
 					::ScreenToClient(GetManager()->GetPaintWindow(), &pt);
 				}
 				else if( uMsg == WM_MOUSEWHEEL ) ::ScreenToClient(GetManager()->GetPaintWindow(), &pt);
+
 				if( ::PtInRect(&rc, pt) && !GetManager()->IsCaptured() ) dwHitResult = HITRESULT_HIT;
 			}
 			if( dwHitResult != HITRESULT_HIT ) return 0;
-			if( uMsg == WM_SETCURSOR ) bWasHandled = false;
+			if( uMsg == WM_SETCURSOR || uMsg == WM_MOUSEMOVE ) bWasHandled = false;
 			else if( uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK || uMsg == WM_RBUTTONDOWN ) {
 				if (!GetManager()->IsNoActivate()) ::SetFocus(GetManager()->GetPaintWindow());
 				SetFocus();
